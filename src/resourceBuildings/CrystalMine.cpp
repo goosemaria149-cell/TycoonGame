@@ -1,6 +1,7 @@
-#include "CrystalMine.h"
-#include "../GameConstants.h"
-#include "../ResourceManager.h"
+#include "resourceBuildings/CrystalMine.h"
+#include "GameConstants.h"
+#include "ResourceManager.h"
+#include "../RandomUtil.h"
 
 CrystalMine::CrystalMine()
     : Building(
@@ -35,7 +36,7 @@ float CrystalMine::CalculateProduction(float deltaTime) const
 {
     float baseProd = Building::CalculateProduction(deltaTime);
     float crystalChance = GetLevel() * 0.02f;
-    if (static_cast<float>(rand()) / RAND_MAX < crystalChance)
+    if (RandomUtil::RollChance(crystalChance))
         return baseProd * 3.0f;
     return baseProd;
 }

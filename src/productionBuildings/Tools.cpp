@@ -1,5 +1,5 @@
-#include "Tools.h"
-#include "../GameConstants.h"
+#include "productionBuildings/Tools.h"
+#include "GameConstants.h"
 
 Tools::Tools()
     : Production(ProductionType::TOOLS,                                                                           // type
@@ -13,3 +13,4 @@ Tools::Tools()
                11)                                                                                                // required reputation
 {
 }
+

@@ -1,6 +1,6 @@
-#include "DiamondMine.h"
-#include "../GameConstants.h"
-#include "../ResourceManager.h"
+#include "resourceBuildings/DiamondMine.h"
+#include "GameConstants.h"
+#include "ResourceManager.h"
 
 DiamondMine::DiamondMine()
     : Building(

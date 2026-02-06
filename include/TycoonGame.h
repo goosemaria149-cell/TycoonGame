@@ -9,7 +9,7 @@
 #include "GameConstants.h"
 
 
-// Player structure
+/// Persistent player state.
 class Player
 {
 public:
@@ -25,40 +25,46 @@ public:
     bool hasStocksUnlocked = false;
 };
 
-// Game state class
+/// Main game orchestrator (simulation + UI rendering).
 class TycoonGame
 {
 public:
     TycoonGame();
     ~TycoonGame();
 
-    // Game initialization
+    /// Initializes runtime state and attempts to load a saved game.
     void Initialize();
 
-    // Game loop functions
+    /// Advances simulation by `deltaTime` seconds.
     void Update(float deltaTime);
+    /// Renders all game UI.
     void Render();
 
-    // Game mechanics
-    bool BuildStructure(BuildingType type);
-    bool BeginProduction(ProductionType type);
-    bool SellStructure(int buildingIndex);
+    /// Attempts to purchase a building of the requested type.
+    [[nodiscard]] bool BuildStructure(BuildingType type);
+    /// Attempts to start a production investment.
+    [[nodiscard]] bool BeginProduction(ProductionType type);
+    /// Attempts to sell an owned building.
+    [[nodiscard]] bool SellStructure(int buildingIndex);
     void UpdateResources(float deltaTime);
     void UpdateEconomy(float deltaTime);
-    bool BuyResource(ResourceType type, float amount);
-    bool SellResource(ResourceType type, float amount);
+    /// Attempts to buy an amount of a resource.
+    [[nodiscard]] bool BuyResource(ResourceType type, float amount);
+    /// Attempts to sell an amount of a resource.
+    [[nodiscard]] bool SellResource(ResourceType type, float amount);
     void UpdateReputation();
-    bool UpgradeBuilding(int buildingIndex);
+    /// Attempts to upgrade an owned building.
+    [[nodiscard]] bool UpgradeBuilding(int buildingIndex);
 
-    // Save/Load functionality
-    bool SaveGame(const std::string& filename = "savegame.json") const;
-    bool LoadGame(const std::string& filename = "savegame.json");
+    /// Saves the current game state to a binary file.
+    [[nodiscard]] bool SaveGame(const std::string &filename = "savegame.json") const;
+    /// Loads game state from a binary file.
+    [[nodiscard]] bool LoadGame(const std::string &filename = "savegame.json");
 
-    // Getters
-    const Player &GetPlayer() const { return m_player; }
-    float GetGameTime() const { return m_gameTime; }
-    bool IsPaused() const { return m_isPaused; }
-    float GetFPS() const { return m_fps; }
+    [[nodiscard]] const Player &GetPlayer() const { return m_player; }
+    [[nodiscard]] float GetGameTime() const { return m_gameTime; }
+    [[nodiscard]] bool IsPaused() const { return m_isPaused; }
+    [[nodiscard]] float GetFPS() const { return m_fps; }
 
     // Setters
     void SetPaused(bool paused) { m_isPaused = paused; }
@@ -81,8 +87,8 @@ private:
     void InitializeResources();
     void InitializeBuildingTypes();
     void InitializeProductionTypes();
-    float CalculateResourcePrice(ResourceType type) const;
-    float CalculateProductionMultiplier() const;
+    [[nodiscard]] float CalculateResourcePrice(ResourceType type) const;
+    [[nodiscard]] float CalculateProductionMultiplier() const;
 
     // GUI rendering functions
     void RenderMainMenu();

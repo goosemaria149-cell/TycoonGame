@@ -1,6 +1,6 @@
-#include "ResearchLab.h"
-#include "../GameConstants.h"
-#include "../ResourceManager.h"
+#include "resourceBuildings/ResearchLab.h"
+#include "GameConstants.h"
+#include "ResourceManager.h"
 
 ResearchLab::ResearchLab()
     : Building(

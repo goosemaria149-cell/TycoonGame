@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -81,6 +81,9 @@
     <ClCompile Include="src\productionBuildings\Jewelry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\resourceBuildings\DiamondMine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lib\imconfig.h">
@@ -107,49 +110,58 @@
     <ClInclude Include="lib\imstb_truetype.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\TycoonGame.h">
+    <ClInclude Include="include\TycoonGame.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\resourceBuildings\Woodcutter.h">
+    <ClInclude Include="include\resourceBuildings\Woodcutter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Building.h">
+    <ClInclude Include="include\Building.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\BuildingFactory.h">
+    <ClInclude Include="include\BuildingFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\GameConstants.h">
+    <ClInclude Include="include\GameConstants.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Resource.h">
+    <ClInclude Include="include\Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\resourceBuildings\CrystalMine.h">
+    <ClInclude Include="include\resourceBuildings\CrystalMine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\resourceBuildings\Mine.h">
+    <ClInclude Include="include\resourceBuildings\Mine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\resourceBuildings\PowerPlant.h">
+    <ClInclude Include="include\resourceBuildings\PowerPlant.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\resourceBuildings\ResearchLab.h">
+    <ClInclude Include="include\resourceBuildings\ResearchLab.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Production.h">
+    <ClInclude Include="include\Production.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\productionBuildings\Furniture.h">
+    <ClInclude Include="include\productionBuildings\Furniture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\productionBuildings\Tools.h">
+    <ClInclude Include="include\productionBuildings\Tools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\productionBuildings\Railroads.h">
+    <ClInclude Include="include\productionBuildings\Railroads.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\productionBuildings\Jewelry.h">
+    <ClInclude Include="include\productionBuildings\Jewelry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\resourceBuildings\DiamondMine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ResourceManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\RandomUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -157,3 +169,6 @@
     <Font Include="lib\HackNerdFont.ttf" />
   </ItemGroup>
 </Project>
+
+
+

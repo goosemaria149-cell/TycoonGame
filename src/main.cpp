@@ -2,18 +2,10 @@
 #include "../lib/imgui_impl_win32.h"
 #include "../lib/imgui_impl_dx11.h"
 #include <d3d11.h>
-#include <tchar.h>
-#include <string>
-#include <fstream>
-#include <vector>
-#include <iostream>
+#include <exception>
+#include <memory>
 #include <windows.h>
-#include <algorithm>
-#include <mfapi.h>
-#include <mfidl.h>
-#include <mfreadwrite.h>
-#include <mferror.h>
-#include <shlwapi.h>
+#include <wrl/client.h>
 #include "TycoonGame.h"
 
 // Link with DirectX libraries
@@ -21,21 +13,17 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 
-#pragma comment(lib, "mfplat.lib")
-#pragma comment(lib, "mfreadwrite.lib")
-#pragma comment(lib, "mfuuid.lib")
-#pragma comment(lib, "shlwapi.lib")
+using Microsoft::WRL::ComPtr;
 
 // Data
-static ID3D11Device *g_pd3dDevice = nullptr;
-static ID3D11DeviceContext *g_pd3dDeviceContext = nullptr;
-static IDXGISwapChain *g_pSwapChain = nullptr;
-static bool g_SwapChainOccluded = false;
+static ComPtr<ID3D11Device> g_pd3dDevice;
+static ComPtr<ID3D11DeviceContext> g_pd3dDeviceContext;
+static ComPtr<IDXGISwapChain> g_pSwapChain;
 static UINT g_ResizeWidth = 0, g_ResizeHeight = 0;
-static ID3D11RenderTargetView *g_mainRenderTargetView = nullptr;
+static ComPtr<ID3D11RenderTargetView> g_mainRenderTargetView;
 
 // Game instance
-static TycoonGame *g_game = nullptr;
+static std::unique_ptr<TycoonGame> g_game;
 
 // Font
 static ImFont *g_font = nullptr;
@@ -48,7 +36,7 @@ void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Main code
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
     try
     {
@@ -83,8 +71,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         try
         {
             // Try to load the custom font from the lib folder
-            g_font = io.Fonts->AddFontFromFileTTF("lib/HackNerdFont.ttf", 16.0f, NULL, io.Fonts->GetGlyphRangesDefault());
-            IM_ASSERT(g_font != NULL);
+            g_font = io.Fonts->AddFontFromFileTTF("lib/HackNerdFont.ttf", 16.0f, nullptr, io.Fonts->GetGlyphRangesDefault());
+            IM_ASSERT(g_font != nullptr);
             if (!g_font)
             {
                 g_font = io.Fonts->AddFontDefault();
@@ -97,10 +85,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         // Setup Platform/Renderer backends
         ImGui_ImplWin32_Init(hwnd);
-        ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+        ImGui_ImplDX11_Init(g_pd3dDevice.Get(), g_pd3dDeviceContext.Get());
 
         // Create and initialize game
-        g_game = new TycoonGame();
+        g_game = std::make_unique<TycoonGame>();
         g_game->Initialize();
 
         // Main loop
@@ -153,15 +141,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             // Rendering
             ImGui::Render();
             const float clear_color_with_alpha[4] = {0.1f, 0.1f, 0.1f, 1.00f};
-            g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
-            g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
+            ID3D11RenderTargetView *renderTarget = g_mainRenderTargetView.Get();
+            g_pd3dDeviceContext->OMSetRenderTargets(1, &renderTarget, nullptr);
+            g_pd3dDeviceContext->ClearRenderTargetView(renderTarget, clear_color_with_alpha);
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
             g_pSwapChain->Present(1, 0);
         }
 
         // Cleanup
-        delete g_game;
+        g_game.reset();
         ImGui_ImplDX11_Shutdown();
         ImGui_ImplWin32_Shutdown();
         ImGui::DestroyContext();
@@ -211,9 +200,33 @@ bool CreateDeviceD3D(HWND hWnd)
         D3D_FEATURE_LEVEL_11_0,
         D3D_FEATURE_LEVEL_10_0,
     };
-    HRESULT res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
+    HRESULT res = D3D11CreateDeviceAndSwapChain(
+        nullptr,
+        D3D_DRIVER_TYPE_HARDWARE,
+        nullptr,
+        createDeviceFlags,
+        featureLevelArray,
+        2,
+        D3D11_SDK_VERSION,
+        &sd,
+        g_pSwapChain.GetAddressOf(),
+        g_pd3dDevice.GetAddressOf(),
+        &featureLevel,
+        g_pd3dDeviceContext.GetAddressOf());
     if (res == DXGI_ERROR_UNSUPPORTED) // Try high-performance WARP software driver if hardware is not available.
-        res = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext);
+        res = D3D11CreateDeviceAndSwapChain(
+            nullptr,
+            D3D_DRIVER_TYPE_WARP,
+            nullptr,
+            createDeviceFlags,
+            featureLevelArray,
+            2,
+            D3D11_SDK_VERSION,
+            &sd,
+            g_pSwapChain.GetAddressOf(),
+            g_pd3dDevice.GetAddressOf(),
+            &featureLevel,
+            g_pd3dDeviceContext.GetAddressOf());
     if (res != S_OK)
         return false;
 
@@ -224,38 +237,21 @@ bool CreateDeviceD3D(HWND hWnd)
 void CleanupDeviceD3D()
 {
     CleanupRenderTarget();
-    if (g_pSwapChain)
-    {
-        g_pSwapChain->Release();
-        g_pSwapChain = nullptr;
-    }
-    if (g_pd3dDeviceContext)
-    {
-        g_pd3dDeviceContext->Release();
-        g_pd3dDeviceContext = nullptr;
-    }
-    if (g_pd3dDevice)
-    {
-        g_pd3dDevice->Release();
-        g_pd3dDevice = nullptr;
-    }
+    g_pSwapChain.Reset();
+    g_pd3dDeviceContext.Reset();
+    g_pd3dDevice.Reset();
 }
 
 void CreateRenderTarget()
 {
-    ID3D11Texture2D *pBackBuffer;
-    g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
-    g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_mainRenderTargetView);
-    pBackBuffer->Release();
+    ComPtr<ID3D11Texture2D> backBuffer;
+    g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(backBuffer.GetAddressOf()));
+    g_pd3dDevice->CreateRenderTargetView(backBuffer.Get(), nullptr, g_mainRenderTargetView.GetAddressOf());
 }
 
 void CleanupRenderTarget()
 {
-    if (g_mainRenderTargetView)
-    {
-        g_mainRenderTargetView->Release();
-        g_mainRenderTargetView = nullptr;
-    }
+    g_mainRenderTargetView.Reset();
 }
 
 #ifndef WM_DPICHANGED
@@ -295,7 +291,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
             // const int dpi = HIWORD(wParam);
             // printf("WM_DPICHANGED to %d (%.0f%%)\n", dpi, (float)dpi / 96.0f * 100.0f);
-            const RECT *suggested_rect = (RECT *)lParam;
+            const RECT *suggested_rect = reinterpret_cast<RECT *>(lParam);
             ::SetWindowPos(hWnd, nullptr, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
         }
         break;

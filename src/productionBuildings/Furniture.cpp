@@ -1,5 +1,5 @@
-#include "Furniture.h"
-#include "../GameConstants.h"
+#include "productionBuildings/Furniture.h"
+#include "GameConstants.h"
 
 Furniture::Furniture()
     : Production(ProductionType::FURNITURE,                                                                       // type
@@ -13,3 +13,4 @@ Furniture::Furniture()
                3)                                                                                                 // required reputation
 {
 }
+

@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../Production.h"
+#include "Production.h"
 
+/// Late-game premium production investment.
 class Jewelry : public Production
 {
 public:

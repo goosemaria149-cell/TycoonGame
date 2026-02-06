@@ -1,5 +1,5 @@
-#include "Jewelry.h"
-#include "../GameConstants.h"
+#include "productionBuildings/Jewelry.h"
+#include "GameConstants.h"
 
 Jewelry::Jewelry()
     : Production(ProductionType::JEWELRY,                                                                         // type
@@ -13,3 +13,4 @@ Jewelry::Jewelry()
                26)                                                                                                // required reputation
 {
 }
+

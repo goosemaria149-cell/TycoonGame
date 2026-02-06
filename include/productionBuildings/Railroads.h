@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../Production.h"
+#include "Production.h"
 
+/// High-yield production investment.
 class Railroads : public Production
 {
 public:

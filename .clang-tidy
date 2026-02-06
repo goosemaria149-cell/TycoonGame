@@ -1,0 +1,18 @@
+Checks: >
+  -*,
+  bugprone-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-owning-memory,
+  -readability-identifier-length
+WarningsAsErrors: '*'
+HeaderFilterRegex: '^(include|src)/'
+FormatStyle: file
+CheckOptions:
+  - key: readability-implicit-bool-conversion.AllowIntegerConditions
+    value: '1'
+  - key: modernize-use-trailing-return-type.MinTypeNameLength
+    value: '40'

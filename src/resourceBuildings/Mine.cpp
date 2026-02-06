@@ -1,6 +1,7 @@
-#include "Mine.h"
-#include "../GameConstants.h"
-#include "../ResourceManager.h"
+#include "resourceBuildings/Mine.h"
+#include "GameConstants.h"
+#include "ResourceManager.h"
+#include "../RandomUtil.h"
 
 Mine::Mine()
     : Building(
@@ -31,7 +32,7 @@ float Mine::CalculateProduction(float deltaTime) const
 {
     float baseProduction = Building::CalculateProduction(deltaTime);
     float rareChance = GetLevel() * 0.03f;
-    if (static_cast<float>(rand()) / RAND_MAX < rareChance)
+    if (RandomUtil::RollChance(rareChance))
         return baseProduction * 2.0f;
     return baseProduction;
 }

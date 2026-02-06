@@ -1,5 +1,6 @@
 #pragma once
 
+/// Gameplay tuning constants.
 namespace GameConstants
 {
     // Resource update intervals

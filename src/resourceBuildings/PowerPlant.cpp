@@ -1,6 +1,7 @@
-#include "PowerPlant.h"
-#include "../GameConstants.h"
-#include "../ResourceManager.h"
+#include "resourceBuildings/PowerPlant.h"
+#include "GameConstants.h"
+#include "ResourceManager.h"
+#include "../RandomUtil.h"
 
 PowerPlant::PowerPlant()
     : Building(
@@ -34,7 +35,7 @@ float PowerPlant::CalculateProduction(float deltaTime) const
 {
     float baseProd = Building::CalculateProduction(deltaTime);
     float extraChance = GetLevel() * 0.04f;
-    if (static_cast<float>(rand()) / RAND_MAX < extraChance)
+    if (RandomUtil::RollChance(extraChance))
         return baseProd * 1.75f;
     return baseProd;
 }

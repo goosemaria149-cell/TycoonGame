@@ -9,7 +9,6 @@
 #include "productionBuildings/Tools.h"
 #include "productionBuildings/Railroads.h"
 #include "productionBuildings/Jewelry.h"
-#include "GameConstants.h"
 
 //Buildings
 std::unique_ptr<Building> BuildingFactory::CreateBuilding(BuildingType type)
@@ -35,13 +34,14 @@ std::unique_ptr<Building> BuildingFactory::CreateBuilding(BuildingType type)
 
 std::vector<BuildingType> BuildingFactory::GetAvailableBuildingTypes()
 {
-    return {
+    static const std::vector<BuildingType> kBuildingTypes = {
         BuildingType::WOODCUTTER,
         BuildingType::MINE,
         BuildingType::CRYSTAL_MINE,
         BuildingType::POWER_PLANT,
         BuildingType::RESEARCH_LAB,
         BuildingType::DIAMOND_MINE};
+    return kBuildingTypes;
 }
 //Productions
 std::unique_ptr<Production> BuildingFactory::CreateProduction(ProductionType type)
@@ -63,9 +63,10 @@ std::unique_ptr<Production> BuildingFactory::CreateProduction(ProductionType typ
 
 std::vector<ProductionType> BuildingFactory::GetAvailableProductionTypes()
 {
-    return {
+    static const std::vector<ProductionType> kProductionTypes = {
         ProductionType::FURNITURE,
         ProductionType::TOOLS,
         ProductionType::RAILROADS,
         ProductionType::JEWELRY};
+    return kProductionTypes;
 }

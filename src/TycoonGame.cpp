@@ -2,14 +2,76 @@
 #include "BuildingFactory.h"
 #include "../lib/imgui.h"
 #include <algorithm>
-#include <random>
+#include <cstdio>
 #include <map>
 #include <stdexcept>
 #include <sstream>
 #include <iomanip>
-#include <cmath>
 #include <fstream>
 #include "ResourceManager.h"
+
+namespace
+{
+struct ResourceUiInfo
+{
+    const char *symbol;
+    ImVec4 color;
+};
+
+[[nodiscard]] ResourceUiInfo GetResourceUiInfo(ResourceType type)
+{
+    switch (type)
+    {
+    case ResourceType::WOOD:
+        return {"[W]", ImVec4(0.55f, 0.27f, 0.07f, 1.0f)};
+    case ResourceType::STONE:
+        return {"[S]", ImVec4(0.5f, 0.5f, 0.5f, 1.0f)};
+    case ResourceType::IRON:
+        return {"[I]", ImVec4(0.7f, 0.7f, 0.7f, 1.0f)};
+    case ResourceType::GOLD:
+        return {"[G]", ImVec4(1.0f, 0.84f, 0.0f, 1.0f)};
+    case ResourceType::CRYSTAL:
+        return {"[C]", ImVec4(0.5f, 0.0f, 0.5f, 1.0f)};
+    case ResourceType::ENERGY:
+        return {"[E]", ImVec4(0.0f, 0.8f, 1.0f, 1.0f)};
+    case ResourceType::DIAMOND:
+        return {"[D]", ImVec4(0.0f, 0.8f, 0.8f, 1.0f)};
+    default:
+        return {"[?]", ImVec4(1.0f, 1.0f, 1.0f, 1.0f)};
+    }
+}
+
+[[nodiscard]] std::vector<ResourceType> CollectProducibleResources(const Player &player)
+{
+    std::vector<ResourceType> producibleResources;
+    for (const auto &building : player.buildings)
+    {
+        if (!building || !building->IsOwned())
+        {
+            continue;
+        }
+
+        for (const auto &output : building->GetOutputResources())
+        {
+            if (std::find(producibleResources.begin(), producibleResources.end(), output.GetType()) == producibleResources.end())
+            {
+                producibleResources.push_back(output.GetType());
+            }
+        }
+    }
+    return producibleResources;
+}
+
+[[nodiscard]] bool IsProducibleResource(const std::vector<ResourceType> &resources, ResourceType type)
+{
+    return std::find(resources.begin(), resources.end(), type) != resources.end();
+}
+
+bool g_showHelpWindow = false;
+std::map<ResourceType, std::vector<float>> g_resourceHistory;
+std::map<ResourceType, int> g_historyOffset;
+std::map<ResourceType, int> g_historyCount;
+} // namespace
 
 TycoonGame::TycoonGame()
     : m_gameTime(0.0f), m_isPaused(false), m_economyUpdateTimer(0.0f), m_resourceUpdateTimer(0.0f), m_reputationUpdateTimer(0.0f), m_maintenanceUpdateTimer(0.0f), m_lastFrameTime(0.0f), m_fps(0.0f), m_frameCount(0), m_fpsUpdateTimer(0.0f)
@@ -314,7 +376,7 @@ void TycoonGame::UpdateResources(float deltaTime)
     }
 }
 
-void TycoonGame::UpdateEconomy(float deltaTime)
+void TycoonGame::UpdateEconomy(float /*deltaTime*/)
 {
     // Update prices for all resources
     for (auto &[type, resource] : m_player.resources)
@@ -506,7 +568,8 @@ bool TycoonGame::SellResource(ResourceType type, float amount)
     if (it->second.GetAmount() <= 0.0f)
         it->second.SetOwned(false);
 
-    ResourceManager::Instance().Consume(type, amount);
+    const bool consumed = ResourceManager::Instance().Consume(type, amount);
+    (void)consumed;
     return true;
 }
 
@@ -567,11 +630,12 @@ void TycoonGame::RenderMainMenu()
                 m_isPaused = !m_isPaused;
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Exit"))
-            {
-                SaveGame("savegame.dat");
-                exit(0);
-            }
+                if (ImGui::MenuItem("Exit"))
+                {
+                    const bool saveOk = SaveGame("savegame.dat");
+                    (void)saveOk;
+                    exit(0);
+                }
             ImGui::EndMenu();
         }
 
@@ -715,66 +779,19 @@ void TycoonGame::RenderResourcesWindow()
         if (type == ResourceType::MONEY)
             continue;
 
-        ImVec4 color;
-        const char *symbol = "";
-        switch (type)
-        {
-        case ResourceType::WOOD:
-            symbol = "[W]";
-            color = ImVec4(0.55f, 0.27f, 0.07f, 1.0f);
-            break;
-        case ResourceType::STONE:
-            symbol = "[S]";
-            color = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-            break;
-        case ResourceType::IRON:
-            symbol = "[I]";
-            color = ImVec4(0.7f, 0.7f, 0.7f, 1.0f);
-            break;
-        case ResourceType::GOLD:
-            symbol = "[G]";
-            color = ImVec4(1.0f, 0.84f, 0.0f, 1.0f);
-            break;
-        case ResourceType::CRYSTAL:
-            symbol = "[C]";
-            color = ImVec4(0.5f, 0.0f, 0.5f, 1.0f);
-            break;
-        case ResourceType::ENERGY:
-            symbol = "[E]";
-            color = ImVec4(0.0f, 0.8f, 1.0f, 1.0f);
-            break;
-        case ResourceType::DIAMOND:
-            symbol = "[D]";
-            color = ImVec4(0.0f, 0.8f, 0.8f, 1.0f);
-            break;
-        default:
-            symbol = "[?]";
-            color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-            break;
-        }
+        const ResourceUiInfo info = GetResourceUiInfo(type);
 
-        ImGui::PushStyleColor(ImGuiCol_Text, color);
-        ImGui::Text("%s %s:", symbol, resource.GetName().c_str());
+        ImGui::PushStyleColor(ImGuiCol_Text, info.color);
+        ImGui::Text("%s %s:", info.symbol, resource.GetName().c_str());
         ImGui::PopStyleColor();
 
-        float maxAmount = 100.0f;
-        float progress = std::min(resource.GetAmount() / maxAmount, 1.0f);
+        constexpr float kMaxResourceAmount = 100.0f;
+        float progress = std::min(resource.GetAmount() / kMaxResourceAmount, 1.0f);
         char decimal[32];
         snprintf(decimal, sizeof(decimal), "%.1f%%", progress * 100.0f);
         ImGui::ProgressBar(progress, ImVec2(-1.0f, 0.0f), decimal);
 
         ImGui::Text("$%.2f per", resource.GetBasePrice());
-
-        // if (type == ResourceType::ENERGY)
-        // {
-        //     ImGui::SameLine();
-        //     if (ImGui::Button("Buy 10 Energy"))
-        //     {
-        //         if (!BuyResource(type, 10.0f))
-        //         {
-        //         }
-        //     }
-        // }
 
         ImGui::Separator();
     }
@@ -783,7 +800,6 @@ void TycoonGame::RenderResourcesWindow()
     ImGui::End();
 }
 
-bool showHelpWindow = false;
 void TycoonGame::RenderProductionWindow()
 {
     ImGui::SetNextWindowPos(ImVec2(10, 574), ImGuiCond_FirstUseEver);
@@ -796,31 +812,11 @@ void TycoonGame::RenderProductionWindow()
     {
         if (production->IsOwned())
             continue;
-        ProductionType type = production->GetType();
         ImVec4 color = ImVec4(0.0f, 1.0f, 0.0f, 0.75f);
-        const char *symbol = "";
+        const char *symbol = "[WJ]";
 
         if (m_player.reputation >= production->GetRequiredReputation())
         {
-            switch (type)
-            {
-            case ProductionType::FURNITURE:
-                symbol = "[WJ]";
-                break;
-            case ProductionType::RAILROADS:
-                symbol = "[WJ]";
-                break;
-            case ProductionType::TOOLS:
-                symbol = "[WJ]";
-                break;
-            case ProductionType::JEWELRY:
-                symbol = "[WJ]";
-                break;
-            default:
-                symbol = "[?J]";
-                color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // Default white
-                break;
-            }
             ImGui::PushStyleColor(ImGuiCol_Text, color);
             ImGui::Text("%s %s:", symbol, production->GetName().c_str());
             ImGui::PopStyleColor();
@@ -837,7 +833,7 @@ void TycoonGame::RenderProductionWindow()
                 {
                     if (ImGui::Button(("Invest##" + production->GetName()).c_str()))
                     {
-                        BeginProduction(production->GetType());
+                        (void)BeginProduction(production->GetType());
                     }
                     if (ImGui::IsItemHovered())
                     {
@@ -878,7 +874,7 @@ void TycoonGame::RenderProductionWindow()
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green
                 if (ImGui::Button(("Invested##" + production->GetName()).c_str()))
                 {
-                    BeginProduction(production->GetType());
+                    (void)BeginProduction(production->GetType());
                 }
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
                 {
@@ -898,10 +894,10 @@ void TycoonGame::RenderProductionWindow()
     ImGui::NewLine();
     if (ImGui::Button("?"))
     {
-        showHelpWindow = true;
+        g_showHelpWindow = true;
     }
 
-    if (showHelpWindow)
+    if (g_showHelpWindow)
     {
         ImGui::SetNextWindowPos(ImVec2(250, 400));
         ImGui::SetNextWindowSize(ImVec2(300, 190));
@@ -923,7 +919,7 @@ void TycoonGame::RenderProductionWindow()
             ImGui::NewLine();
             if (ImGui::Button("Close"))
             {
-                showHelpWindow = false;
+                g_showHelpWindow = false;
             }
         }
         ImGui::End();
@@ -952,7 +948,6 @@ void TycoonGame::RenderPurchaseBuildingsWindow()
         if (building->IsOwned())
             continue;
 
-        std::string buttonText = "";
         const char *symbol = "";
 
         switch (building->GetType())
@@ -988,7 +983,7 @@ void TycoonGame::RenderPurchaseBuildingsWindow()
             {
                 if (ImGui::Button(uniqueButtonText.c_str()))
                 {
-                    BuildStructure(building->GetType());
+                    (void)BuildStructure(building->GetType());
                 }
                 if (ImGui::IsItemHovered())
                 {
@@ -1003,7 +998,7 @@ void TycoonGame::RenderPurchaseBuildingsWindow()
 
                 if (ImGui::Button(uniqueButtonText.c_str()))
                 {
-                    BuildStructure(building->GetType());
+                    (void)BuildStructure(building->GetType());
                 }
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
                 {
@@ -1086,12 +1081,12 @@ void TycoonGame::RenderBuildingsWindow()
             ImGui::Text("Maintenance: $%.2f/s", building->GetMaintenanceCost());
 
             // Upgrade button - use a unique ID for each button (show if has enough to upgrade & not max level; hardcoded to 5)
-            if (static_cast<int>(building->GetUpgradeCost()) < m_player.money && static_cast<int>(building->GetLevel()) < 5)
+            if (building->GetUpgradeCost() < m_player.money && building->GetLevel() < Building::MAX_LEVEL)
             {
                 std::string upgradeButtonId = "Upgrade ($" + std::to_string(static_cast<int>(building->GetUpgradeCost())) + ")##upgrade" + std::to_string(originalIndex);
                 if (ImGui::Button(upgradeButtonId.c_str()))
                 {
-                    UpgradeBuilding(originalIndex);
+                    (void)UpgradeBuilding(originalIndex);
                 }
                 if (ImGui::IsItemHovered())
                 {
@@ -1105,7 +1100,7 @@ void TycoonGame::RenderBuildingsWindow()
             std::string sellButtonId = "Sell##building" + std::to_string(originalIndex);
             if (ImGui::Button(sellButtonId.c_str()))
             {
-                SellStructure(originalIndex);
+                (void)SellStructure(originalIndex);
             }
 
             ImGui::TreePop();
@@ -1133,67 +1128,16 @@ void TycoonGame::RenderMarketWindow()
     ImGui::PopStyleColor();
     ImGui::Separator();
 
-    // Get all resource types that are produced by owned buildings
-    std::vector<ResourceType> producibleResources;
-    for (const auto &building : m_player.buildings)
-    {
-        if (building->IsOwned())
-        {
-            for (const auto &output : building->GetOutputResources())
-            {
-                if (std::find(producibleResources.begin(), producibleResources.end(), output.GetType()) == producibleResources.end())
-                {
-                    producibleResources.push_back(output.GetType());
-                }
-            }
-        }
-    }
+    const std::vector<ResourceType> producibleResources = CollectProducibleResources(m_player);
 
     // Show only resources that can be produced
     for (const auto &[type, resource] : m_player.resources)
     {
-        if (type != ResourceType::MONEY &&
-            std::find(producibleResources.begin(), producibleResources.end(), type) != producibleResources.end())
+        if (type != ResourceType::MONEY && IsProducibleResource(producibleResources, type))
         {
-
-            // Resource name and symbol
-            const char *symbol = "";
-            ImVec4 color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-
-            switch (type)
-            {
-            case ResourceType::WOOD:
-                symbol = "[W]";
-                color = ImVec4(0.55f, 0.27f, 0.07f, 1.0f); // Brown
-                break;
-            case ResourceType::STONE:
-                symbol = "[S]";
-                color = ImVec4(0.5f, 0.5f, 0.5f, 1.0f); // Gray
-                break;
-            case ResourceType::IRON:
-                symbol = "[I]";
-                color = ImVec4(0.7f, 0.7f, 0.7f, 1.0f); // Light gray
-                break;
-            case ResourceType::GOLD:
-                symbol = "[G]";
-                color = ImVec4(1.0f, 0.84f, 0.0f, 1.0f); // Gold
-                break;
-            case ResourceType::CRYSTAL:
-                symbol = "[C]";
-                color = ImVec4(0.5f, 0.0f, 0.5f, 1.0f); // Purple
-                break;
-            case ResourceType::ENERGY:
-                symbol = "[E]";
-                color = ImVec4(0.0f, 0.8f, 1.0f, 1.0f); // Blue
-                break;
-            case ResourceType::DIAMOND:
-                symbol = "[D]";
-                color = ImVec4(0.0f, 0.8f, 0.8f, 1.0f); // Cyan
-                break;
-            }
-
-            ImGui::PushStyleColor(ImGuiCol_Text, color);
-            ImGui::Text("%s %s", symbol, resource.GetName().c_str());
+            const ResourceUiInfo info = GetResourceUiInfo(type);
+            ImGui::PushStyleColor(ImGuiCol_Text, info.color);
+            ImGui::Text("%s %s", info.symbol, resource.GetName().c_str());
             ImGui::PopStyleColor();
 
             ImGui::Text("$ Current Price: %.2f", resource.GetBasePrice());
@@ -1205,17 +1149,17 @@ void TycoonGame::RenderMarketWindow()
                 std::string resourceId = std::to_string(static_cast<int>(type));
                 if (ImGui::Button(("Sell 1%##" + resourceId).c_str()))
                 {
-                    SellResource(type, 1.0f);
+                    (void)SellResource(type, 1.0f);
                 }
                 ImGui::SameLine();
                 if (ImGui::Button(("Sell Half##" + resourceId).c_str()))
                 {
-                    SellResource(type, resource.GetAmount() * 0.5f);
+                    (void)SellResource(type, resource.GetAmount() * 0.5f);
                 }
                 ImGui::SameLine();
                 if (ImGui::Button(("Sell All##" + resourceId).c_str()))
                 {
-                    SellResource(type, resource.GetAmount());
+                    (void)SellResource(type, resource.GetAmount());
                 }
                 ImGui::EndGroup();
             }
@@ -1236,11 +1180,6 @@ void TycoonGame::RenderMarketWindow()
 
     ImGui::End();
 }
-
-constexpr int kHistorySize = 100;
-static std::map<ResourceType, std::vector<float>> resourceHistory;
-static std::map<ResourceType, int> historyOffset;
-static std::map<ResourceType, int> historyCount;
 
 void TycoonGame::RenderStockUnlockButton()
 {
@@ -1320,21 +1259,7 @@ void TycoonGame::RenderStockWindow()
         ImGui::PopStyleColor();
         ImGui::Separator();
 
-        // Get all resource types that are produced by owned buildings
-        std::vector<ResourceType> producibleResources;
-        for (const auto &building : m_player.buildings)
-        {
-            if (building->IsOwned())
-            {
-                for (const auto &output : building->GetOutputResources())
-                {
-                    if (std::find(producibleResources.begin(), producibleResources.end(), output.GetType()) == producibleResources.end())
-                    {
-                        producibleResources.push_back(output.GetType());
-                    }
-                }
-            }
-        }
+        const std::vector<ResourceType> producibleResources = CollectProducibleResources(m_player);
 
         // Define history size for 60 seconds (1 sample per second)
         const int kHistorySize = 60;
@@ -1346,74 +1271,40 @@ void TycoonGame::RenderStockWindow()
         for (const auto &[type, resource] : m_player.resources)
         {
             if (type != ResourceType::MONEY &&
-                std::find(producibleResources.begin(), producibleResources.end(), type) != producibleResources.end())
+                IsProducibleResource(producibleResources, type))
             {
-                // Colors and symbols
-                const char *symbol = "";
-                ImVec4 color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-
-                switch (type)
-                {
-                case ResourceType::WOOD:
-                    symbol = "[W]";
-                    color = ImVec4(0.55f, 0.27f, 0.07f, 1.0f);
-                    break;
-                case ResourceType::STONE:
-                    symbol = "[S]";
-                    color = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-                    break;
-                case ResourceType::IRON:
-                    symbol = "[I]";
-                    color = ImVec4(0.7f, 0.7f, 0.7f, 1.0f);
-                    break;
-                case ResourceType::GOLD:
-                    symbol = "[G]";
-                    color = ImVec4(1.0f, 0.84f, 0.0f, 1.0f);
-                    break;
-                case ResourceType::CRYSTAL:
-                    symbol = "[C]";
-                    color = ImVec4(0.5f, 0.0f, 0.5f, 1.0f);
-                    break;
-                case ResourceType::ENERGY:
-                    symbol = "[E]";
-                    color = ImVec4(0.0f, 0.8f, 1.0f, 1.0f);
-                    break;
-                case ResourceType::DIAMOND:
-                    symbol = "[D]";
-                    color = ImVec4(0.0f, 0.8f, 0.8f, 1.0f); // Cyan
-                    break;
-                }
+                const ResourceUiInfo info = GetResourceUiInfo(type);
 
                 // Initialize plot buffer if needed
-                if (resourceHistory[type].empty())
+                if (g_resourceHistory[type].empty())
                 {
-                    resourceHistory[type].resize(kHistorySize, resource.GetBasePrice());
-                    historyOffset[type] = 0;
-                    historyCount[type] = 1;                  // Start with one valid entry
-                    lastUpdateTime[type] = ImGui::GetTime(); // Initialize with current time
+                    g_resourceHistory[type].resize(kHistorySize, resource.GetBasePrice());
+                    g_historyOffset[type] = 0;
+                    g_historyCount[type] = 1;                // Start with one valid entry
+                    lastUpdateTime[type] = static_cast<float>(ImGui::GetTime()); // Initialize with current time
                 }
 
                 // Update history buffer every second
-                float currentTime = ImGui::GetTime();
+                float currentTime = static_cast<float>(ImGui::GetTime());
                 if (currentTime - lastUpdateTime[type] >= 1.0f) // Update every 1 second
                 {
-                    resourceHistory[type][historyOffset[type]] = resource.GetBasePrice();
-                    historyOffset[type] = (historyOffset[type] + 1) % kHistorySize;
+                    g_resourceHistory[type][g_historyOffset[type]] = resource.GetBasePrice();
+                    g_historyOffset[type] = (g_historyOffset[type] + 1) % kHistorySize;
 
                     // Update the count, up to max size
-                    if (historyCount[type] < kHistorySize)
-                        historyCount[type]++;
+                    if (g_historyCount[type] < kHistorySize)
+                        g_historyCount[type]++;
 
                     // Update last update time
                     lastUpdateTime[type] = currentTime;
                 }
 
                 // Reorder data for plotting (oldest to newest)
-                std::vector<float> orderedHistory(historyCount[type]);
-                for (int i = 0; i < historyCount[type]; ++i)
+                std::vector<float> orderedHistory(g_historyCount[type]);
+                for (int i = 0; i < g_historyCount[type]; ++i)
                 {
-                    int index = (historyOffset[type] - historyCount[type] + i + kHistorySize) % kHistorySize;
-                    orderedHistory[i] = resourceHistory[type][index];
+                    int index = (g_historyOffset[type] - g_historyCount[type] + i + kHistorySize) % kHistorySize;
+                    orderedHistory[i] = g_resourceHistory[type][index];
                 }
 
                 // Compute min and max over valid data
@@ -1433,13 +1324,13 @@ void TycoonGame::RenderStockWindow()
                 maxVal += padding;
 
                 // Resource label
-                ImGui::PushStyleColor(ImGuiCol_Text, color);
-                ImGui::Text("%s %s", symbol, resource.GetName().c_str());
+                ImGui::PushStyleColor(ImGuiCol_Text, info.color);
+                ImGui::Text("%s %s", info.symbol, resource.GetName().c_str());
                 ImGui::PopStyleColor();
 
                 // Live plot
                 std::string plotId = "##ResourcePlot_" + std::to_string(static_cast<int>(type));
-                ImGui::PlotLines(plotId.c_str(), orderedHistory.data(), orderedHistory.size(),
+                ImGui::PlotLines(plotId.c_str(), orderedHistory.data(), static_cast<int>(orderedHistory.size()),
                                  0, nullptr, minVal, maxVal, ImVec2(0, 60));
 
                 ImGui::Separator();
@@ -1529,7 +1420,7 @@ bool TycoonGame::SaveGame(const std::string &filename) const
             float time = p->GetTime();
             bool isInv = p->IsInvested();
             float cost = p->GetCost();
-            float reqRep = p->GetRequiredReputation();
+            float reqRep = static_cast<float>(p->GetRequiredReputation());
             float compTime = p->GetCompletionTime();
             float compAmt = p->GetCompletionAmount();
             file.write(reinterpret_cast<const char *>(&isOwned), sizeof(isOwned));
@@ -1598,7 +1489,10 @@ bool TycoonGame::LoadGame(const std::string &filename)
         {
             float old = rm.Get(p.first);
             if (old > 0.0f)
-                rm.Consume(p.first, old);
+            {
+                const bool consumedOld = rm.Consume(p.first, old);
+                (void)consumedOld;
+            }
             rm.Add(p.first, p.second.GetAmount());
         }
         size_t bldCount;
@@ -1658,13 +1552,16 @@ bool TycoonGame::LoadGame(const std::string &filename)
             auto it = std::find_if(m_player.productions.begin(), m_player.productions.end(),
                                    [&](auto const &p)
                                    { return p->GetName() == nm; });
-            (*it)->SetOwned(isOwned);
-            (*it)->SetTime(time);
-            (*it)->SetIsInvested(isInv);
-            (*it)->SetCost(cost);
-            (*it)->SetRequiredReputation(reqRep);
-            (*it)->SetCompletionTime(compTime);
-            (*it)->SetCompletionAmount(compAmt);
+            if (it != m_player.productions.end())
+            {
+                (*it)->SetOwned(isOwned);
+                (*it)->SetTime(time);
+                (*it)->SetIsInvested(isInv);
+                (*it)->SetCost(cost);
+                (*it)->SetRequiredReputation(static_cast<int>(reqRep));
+                (*it)->SetCompletionTime(compTime);
+                (*it)->SetCompletionAmount(compAmt);
+            }
         }
         size_t stocks;
         file.read(reinterpret_cast<char *>(&stocks), sizeof(stocks));

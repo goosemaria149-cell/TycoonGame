@@ -3,7 +3,7 @@
 #include <vector>
 #include "Resource.h"
 
-// Production type enum
+/// Production opportunities the player can invest in.
 enum class ProductionType
 {
     FURNITURE,
@@ -12,33 +12,31 @@ enum class ProductionType
     JEWELRY
 };
 
+/// Represents an investable production pipeline.
 class Production
 {
 public:
     Production(ProductionType type,
                 const std::string &name,
                 float cost,
-                const std::vector<Resource>& inputResources,
-                const std::vector<Resource>& outputResources,
+                const std::vector<Resource> &inputResources,
+                const std::vector<Resource> &outputResources,
                 float time,
                 float completionTime,
-                float compeltionAmount,
+                float completionAmount,
                 int requiredReputation = 0);
     virtual ~Production() = default;
 
-    // Getters
-    ProductionType GetType() const { return m_type; }
-    const std::string &GetName() const { return m_name; }
-    float GetCost() const { return m_cost; }
-    float GetTime() const { return m_currentTime; }
-    float GetCompletionTime() const { return m_completionTime; }
-    float GetCompletionAmount() const { return m_completionAmount; }
-    bool IsOwned() const { return m_isOwned; }
-    int GetRequiredReputation() const { return m_requiredReputation; }
-    int IsInvested() const { return m_invested; }
-    
+    [[nodiscard]] ProductionType GetType() const { return m_type; }
+    [[nodiscard]] const std::string &GetName() const { return m_name; }
+    [[nodiscard]] float GetCost() const { return m_cost; }
+    [[nodiscard]] float GetTime() const { return m_currentTime; }
+    [[nodiscard]] float GetCompletionTime() const { return m_completionTime; }
+    [[nodiscard]] float GetCompletionAmount() const { return m_completionAmount; }
+    [[nodiscard]] bool IsOwned() const { return m_isOwned; }
+    [[nodiscard]] int GetRequiredReputation() const { return m_requiredReputation; }
+    [[nodiscard]] bool IsInvested() const { return m_invested; }
 
-    // Setters
     void SetTime(float amount) { m_currentTime = amount; }
     void SetCompletionTime(float price) { m_completionTime = price; }
     void SetOwned(bool owned) { m_isOwned = owned; }
@@ -57,8 +55,8 @@ protected:
     float m_completionAmount;
     std::vector<Resource> m_inputResources;
     std::vector<Resource> m_outputResources;
-    bool m_isOperational;
+    bool m_isOperational{false};
     bool m_isOwned = false;
-    int m_requiredReputation;
-    bool m_invested;
+    int m_requiredReputation{0};
+    bool m_invested{false};
 };

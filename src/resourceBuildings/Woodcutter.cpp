@@ -1,5 +1,6 @@
-#include "Woodcutter.h"
-#include "../GameConstants.h"
+#include "resourceBuildings/Woodcutter.h"
+#include "GameConstants.h"
+#include "../RandomUtil.h"
 
 Woodcutter::Woodcutter()
     : Building(BuildingType::WOODCUTTER,
@@ -27,7 +28,7 @@ float Woodcutter::CalculateProduction(float deltaTime) const
     float baseProduction = Building::CalculateProduction(deltaTime);
     float bonusChance = GetLevel() * 0.05f; // 5% chance per level for bonus
 
-    if (static_cast<float>(rand()) / RAND_MAX < bonusChance)
+    if (RandomUtil::RollChance(bonusChance))
     {
         return baseProduction * 1.5f; // 50% bonus production
     }

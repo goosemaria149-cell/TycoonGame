@@ -1,6 +1,7 @@
 #pragma once
-#include "../Building.h"
+#include "Building.h"
 
+/// End-game producer that converts multiple inputs into diamonds.
 class DiamondMine : public Building
 {
 public:
@@ -8,5 +9,5 @@ public:
     virtual ~DiamondMine() = default;
 
     virtual void UpdateEfficiency(float deltaTime) override;
-    virtual float CalculateProduction(float deltaTime) const override;
-}; 
+    [[nodiscard]] virtual float CalculateProduction(float deltaTime) const override;
+};

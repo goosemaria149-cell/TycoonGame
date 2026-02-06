@@ -1,45 +1,54 @@
 # Tycoon Game
 
-A resource management and business simulation game where players build and manage their industrial empire.
+Resource-management and business simulation game built with C++, Win32, DirectX11, and Dear ImGui.
 
-## Features
+## Overview
 
-- Resource gathering and management
-- Building construction and upgrades
-- Production chains and manufacturing
-- Economy simulation with supply and demand
-- Save/Load game functionality
-- Modern UI using Dear ImGui
+The player builds an industrial economy by:
+- purchasing and upgrading buildings,
+- managing production investments,
+- trading resources in a dynamic market,
+- growing reputation to unlock stronger opportunities.
 
-## Building the Project
+## Project Structure
 
-### Prerequisites
+- `include/`: public headers
+- `src/`: implementation files
+- `tests/`: Catch2 unit tests for core simulation modules
+- `lib/`: third-party dependencies (Dear ImGui)
 
-- Visual Studio 2019 or later
-- DirectX 11 SDK
-- Windows SDK
+## Build (Visual Studio)
 
-### Build Steps
+1. Open `Tycoon.sln`.
+2. Retarget toolset if prompted.
+3. Build and run `Tycoon` from Visual Studio.
 
-1. Clone the repository
-2. Open `Tycoon.sln` in Visual Studio
-3. Build the solution (F7 or Build > Build Solution)
-4. Run the game (F5 or Debug > Start Debugging)
+Notes:
+- The project is configured for C++20.
+- Warning level is set to strict (`/W4` and `/WX`).
 
-## Game Controls
+## Build and Test (CMake)
 
-- Left-click to interact with UI elements
-- Mouse wheel to scroll through lists
+This path builds the core simulation library and unit tests.
 
+```powershell
+cmake -S . -B build -DTYCOON_BUILD_TESTS=ON
+cmake --build build --config Debug
+ctest --test-dir build -C Debug --output-on-failure
+```
 
-## Contributing
+## Quality Checks
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+Format code:
 
-## License
+```powershell
+clang-format -i include/**/*.h src/**/*.cpp tests/**/*.cpp
+```
+
+Run static analysis:
+
+```powershell
+clang-tidy src/*.cpp src/**/*.cpp -- -Iinclude -Isrc -std=c++20
+```
 
 ![image](https://github.com/user-attachments/assets/aee54590-bd64-4c0c-acb8-302f0524a2c8)

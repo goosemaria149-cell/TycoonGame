@@ -1,5 +1,5 @@
-#include "Railroads.h"
-#include "../GameConstants.h"
+#include "productionBuildings/Railroads.h"
+#include "GameConstants.h"
 
 Railroads::Railroads()
     : Production(ProductionType::RAILROADS,                                                                       // type
@@ -13,3 +13,4 @@ Railroads::Railroads()
                17)                                                                                                // required reputation
 {
 }
+

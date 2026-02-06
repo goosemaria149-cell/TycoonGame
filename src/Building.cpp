@@ -1,10 +1,13 @@
 #include "Building.h"
 #include <algorithm>
+#include <cassert>
 #include "ResourceManager.h"
 
-// Constants for building mechanics
-const int MAX_LEVEL = 5;
-const float UPGRADE_MULTIPLIER = 1.5f;
+namespace
+{
+constexpr float kUpgradeMultiplier = 1.5f;
+static_assert(Building::MAX_LEVEL > 1, "Building::MAX_LEVEL must allow at least one upgrade.");
+} // namespace
 
 Building::Building(BuildingType type,
                    const std::string &name,
@@ -21,6 +24,8 @@ Building::Building(BuildingType type,
 
 void Building::Update(float deltaTime)
 {
+    assert(deltaTime >= 0.0f);
+
     if (!m_isOperational || !m_isOwned)
         return;
 
@@ -51,13 +56,13 @@ void Building::Update(float deltaTime)
 
 bool Building::Upgrade()
 {
-    if (m_level >= MAX_LEVEL)
+    if (m_level >= Building::MAX_LEVEL)
         return false;
 
     m_level++;
-    m_baseProductionRate *= UPGRADE_MULTIPLIER;
-    m_maintenanceCost *= UPGRADE_MULTIPLIER;
-    m_upgradeCost *= UPGRADE_MULTIPLIER;
+    m_baseProductionRate *= kUpgradeMultiplier;
+    m_maintenanceCost *= kUpgradeMultiplier;
+    m_upgradeCost *= kUpgradeMultiplier;
     return true;
 }
 
